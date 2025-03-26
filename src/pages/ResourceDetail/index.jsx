@@ -6,7 +6,7 @@ import {
   setCurrentResource,
   setLoading,
 } from "../../store/slices/resourceSlice";
-import { addToHistory } from "../../store/slices/userSlice";
+import { addLearningRecord } from "../../store/slices/learningRecordSlice";
 
 const { Title, Text, Paragraph } = Typography;
 const { Content } = Layout;
@@ -60,8 +60,8 @@ const ResourceDetail = () => {
       return;
     }
 
-    dispatch(addToHistory(currentResource));
-    message.success("已添加到学习历史");
+    dispatch(addLearningRecord(currentResource));
+    message.success("已开始学习，记录已添加");
   };
 
   if (!currentResource) {

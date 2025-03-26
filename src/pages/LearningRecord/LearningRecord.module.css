@@ -1,0 +1,192 @@
+:root {
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --transition-ease: all 0.3s ease;
+}
+
+.container {
+  padding: 2rem;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.todoCard {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: var(--card-shadow);
+  border: none;
+  overflow: hidden;
+  transition: var(--transition-ease);
+}
+
+.todoCard:hover {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.todoHeader {
+  background: var(--primary-gradient);
+  padding: 1.5rem;
+  margin: -1px -1px 0 -1px;
+}
+
+.todoTitle {
+  color: white !important;
+  margin: 0 !important;
+}
+
+.addButton {
+  background: white !important;
+  color: #6366f1 !important;
+  border: none !important;
+  height: 40px;
+  padding: 0 1.5rem;
+  font-weight: 500;
+  transition: var(--transition-ease);
+}
+
+.addButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgb(99 102 241 / 0.3);
+}
+
+.todoList {
+  padding: 1rem;
+}
+
+.todoItem {
+  border-radius: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  transition: var(--transition-ease);
+}
+
+.todoItem:hover {
+  border-color: #6366f1;
+  transform: translateX(4px);
+}
+
+.todoItem.completed {
+  background: #f8fafc;
+  opacity: 0.75;
+}
+
+.todoMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.todoTitle {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0;
+}
+
+.todoDescription {
+  color: #64748b;
+  margin-top: 0.5rem;
+}
+
+.todoPriority {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 500;
+}
+
+.priorityHigh {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.priorityMedium {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.priorityLow {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.todoActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.actionButton {
+  border: none !important;
+  background: transparent !important;
+  padding: 0.5rem !important;
+  border-radius: 0.5rem !important;
+  transition: var(--transition-ease);
+}
+
+.actionButton:hover {
+  background: #f1f5f9 !important;
+}
+
+.completeButton {
+  color: #10b981 !important;
+}
+
+.editButton {
+  color: #6366f1 !important;
+}
+
+.deleteButton {
+  color: #ef4444 !important;
+}
+
+.modal {
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.modalHeader {
+  background: var(--primary-gradient);
+  padding: 1rem 1.5rem;
+}
+
+.modalTitle {
+  color: white;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.form {
+  padding: 1.5rem;
+}
+
+.formItem {
+  margin-bottom: 1.5rem;
+}
+
+.input {
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 1rem;
+  transition: var(--transition-ease);
+}
+
+.input:hover, .input:focus {
+  border-color: #6366f1;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.todoItem {
+  animation: slideIn 0.3s ease;
+}

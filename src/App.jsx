@@ -19,7 +19,9 @@ const App = () => {
 
   // Determine which menu item is active
   const selectedKey =
-    location.pathname === "/" ? "1" : location.pathname === "/forum" ? "2" : "";
+    location.pathname === "/" ? "1" :
+    location.pathname === "/forum" ? "2" :
+    location.pathname === "/learning-record" ? "3" : "";
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -111,6 +113,9 @@ const App = () => {
             </Menu.Item>
             <Menu.Item key="2" style={menuItemStyle}>
               <Link to="/forum">论坛</Link>
+            </Menu.Item>
+            <Menu.Item key="3" style={menuItemStyle}>
+              <Link to="/learning-record">学习记录</Link>
             </Menu.Item>
           </Menu>
         </Sider>

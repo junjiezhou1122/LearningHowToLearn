@@ -6,6 +6,7 @@ import Register from "../pages/Register";
 import Profile from "../pages/Profile";
 import ResourceDetail from "../pages/ResourceDetail";
 import Forum from "../pages/Forum";
+import LearningRecord from "../pages/LearningRecord";
 
 const router = createBrowserRouter([
   {
@@ -35,6 +36,10 @@ const router = createBrowserRouter([
       {
         path: "forum",
         element: <Forum />,
+      },
+      {
+        path: "learning-record",
+        element: <LearningRecord />,
       },
     ],
   },
