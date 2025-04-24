@@ -1,0 +1,29 @@
+/* Shared styles for placeholder pages */
+.recommendations-page,
+.categories-page,
+.bookmarks-page,
+.profile-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  margin-top: 7rem;
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.placeholder-content {
+  margin-top: 2rem;
+  padding: 3rem;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.placeholder-content p {
+  color: #666;
+  font-size: 1.2rem;
+}
