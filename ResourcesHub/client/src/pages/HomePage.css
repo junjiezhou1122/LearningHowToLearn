@@ -115,12 +115,31 @@
   font-weight: 500;
 }
 
+.sub-categories {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .sub-categories .category-tab {
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
   padding: 0.5rem 1.2rem;
   border-radius: 20px;
   font-size: 0.9rem;
+  color: #495057;
 }
 
 .category-tab:hover,

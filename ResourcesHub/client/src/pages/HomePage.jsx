@@ -1,76 +1,137 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import ResourceCard from "../components/ResourceCard";
-import { subscribeToNewsletter } from "../services/api";
-import {
-  getRealCourses,
-  getUniqueCategories,
-  getMainCategories,
-} from "../utils/courseUtils";
+import { getPaginatedCourses, getCategories } from "../api/courseApi";
 import "./HomePage.css";
 
 const HomePage = () => {
   const [resources, setResources] = useState([]);
   const [filteredResources, setFilteredResources] = useState([]);
-  const [categories, setCategories] = useState(["All"]);
   const [mainCategories, setMainCategories] = useState(["All"]);
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [subCategories, setSubCategories] = useState({});
   const [activeMainCategory, setActiveMainCategory] = useState("All");
+  const [activeSubCategory, setActiveSubCategory] = useState("All");
   const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-
-  // New state for newsletter subscription
   const [email, setEmail] = useState("");
   const [subscriptionStatus, setSubscriptionStatus] = useState({
     message: "",
-    type: "", // "success" or "error"
+    type: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const ITEMS_PER_PAGE = 100; // Increased to 100
 
-  // Load real course data
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Parse URL parameters on component mount and when URL changes
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const mainParam = params.get("main");
+    const subParam = params.get("sub");
+
+    if (mainParam) {
+      setActiveMainCategory(mainParam);
+      // Set subcategory only if main category exists and sub parameter is provided
+      if (subParam) {
+        setActiveSubCategory(subParam);
+      } else {
+        setActiveSubCategory("All");
+      }
+    }
+  }, [location]);
+
+  // Initialize categories
+  useEffect(() => {
+    const fetchAllCategories = async () => {
+      try {
+        const categoriesData = await getCategories();
+
+        // Add "All" to the beginning of the main categories array
+        const mainCats = ["All", ...categoriesData.mainCategories];
+        setMainCategories(mainCats);
+
+        // Store subcategories
+        setSubCategories(categoriesData.subCategories || {});
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        // Fallback to empty arrays with "All" option
+        setMainCategories(["All"]);
+        setSubCategories({});
+      }
+    };
+
+    fetchAllCategories();
+  }, []);
+
+  // Load courses with pagination
   useEffect(() => {
     const loadCourses = async () => {
       try {
         setIsLoading(true);
-        const realCourses = await getRealCourses();
-        setResources(realCourses);
+        const response = await getPaginatedCourses(page, ITEMS_PER_PAGE);
 
-        // Get unique categories for filtering
-        const uniqueCategories = getUniqueCategories(realCourses);
-        setCategories(uniqueCategories);
+        if (response.data) {
+          // Paginated API response (new format)
+          if (page === 1) {
+            setResources(response.data);
+          } else {
+            setResources((prev) => [...prev, ...response.data]);
+          }
 
-        // Get main categories
-        const uniqueMainCategories = getMainCategories(realCourses);
-        setMainCategories(uniqueMainCategories);
+          setFilteredResources((prev) => {
+            if (page === 1) {
+              return filterCourses(response.data);
+            } else {
+              return filterCourses([...prev, ...response.data]);
+            }
+          });
 
-        setFilteredResources(realCourses);
+          setHasMore(page < response.totalPages);
+        } else {
+          // Fallback to old API format (array response)
+          setResources(response);
+          setFilteredResources(response);
+          setHasMore(false); // No pagination available
+        }
+
         setIsLoading(false);
       } catch (error) {
         console.error("Error loading course data:", error);
         setIsLoading(false);
+        setHasMore(false);
       }
     };
 
     loadCourses();
-  }, []);
+  }, [page]);
 
-  // Filter resources when category or main category changes
-  useEffect(() => {
-    if (resources.length === 0) return;
+  // Handle loading more courses
+  const loadMoreData = () => {
+    setLoadingMore(true);
+    setPage((prevPage) => prevPage + 1);
+    setLoadingMore(false);
+  };
 
-    let filtered = resources;
+  // Helper function to filter courses based on current filters
+  const filterCourses = (coursesToFilter) => {
+    let filtered = coursesToFilter;
 
     // Filter by main category if selected
     if (activeMainCategory !== "All") {
       filtered = filtered.filter(
-        (resource) => resource.mainCategory === activeMainCategory
+        (resource) => resource.category === activeMainCategory
       );
-    }
 
-    // Then filter by subcategory if selected
-    if (activeCategory !== "All") {
-      filtered = filtered.filter(
-        (resource) => resource.category === activeCategory
-      );
+      // Further filter by subcategory if selected
+      if (activeSubCategory !== "All") {
+        filtered = filtered.filter(
+          (resource) => resource.subCategory === activeSubCategory
+        );
+      }
     }
 
     // Apply search filter if there's a search term
@@ -81,23 +142,46 @@ const HomePage = () => {
           resource.title.toLowerCase().includes(term) ||
           resource.description.toLowerCase().includes(term) ||
           (resource.instructors &&
-            resource.instructors.toLowerCase().includes(term))
+            resource.instructors.toString().toLowerCase().includes(term))
       );
     }
 
-    setFilteredResources(filtered);
-  }, [activeCategory, activeMainCategory, resources, searchTerm]);
-
-  // Handle category change
-  const handleCategoryChange = (category) => {
-    setActiveCategory(category);
+    return filtered;
   };
+
+  // Filter resources when category changes
+  useEffect(() => {
+    if (resources.length === 0) return;
+    setFilteredResources(filterCourses(resources));
+  }, [activeMainCategory, activeSubCategory, searchTerm, resources]);
 
   // Handle main category change
   const handleMainCategoryChange = (category) => {
     setActiveMainCategory(category);
-    // Reset subcategory when main category changes
-    setActiveCategory("All");
+    setActiveSubCategory("All"); // Reset subcategory when main category changes
+
+    // Update URL params
+    if (category === "All") {
+      navigate("/"); // Remove parameters if "All" is selected
+    } else {
+      navigate(`/?main=${encodeURIComponent(category)}`);
+    }
+  };
+
+  // Handle subcategory change
+  const handleSubCategoryChange = (subcategory) => {
+    setActiveSubCategory(subcategory);
+
+    // Update URL params
+    if (subcategory === "All") {
+      navigate(`/?main=${encodeURIComponent(activeMainCategory)}`);
+    } else {
+      navigate(
+        `/?main=${encodeURIComponent(
+          activeMainCategory
+        )}&sub=${encodeURIComponent(subcategory)}`
+      );
+    }
   };
 
   // Handle search input change
@@ -108,32 +192,24 @@ const HomePage = () => {
   // Handle newsletter subscription
   const handleSubscribe = async (e) => {
     e.preventDefault();
-
-    // Simple validation
-    if (!email || !email.includes("@")) {
-      setSubscriptionStatus({
-        message: "Please enter a valid email address",
-        type: "error",
-      });
-      return;
-    }
+    setIsSubmitting(true);
 
     try {
-      setIsSubmitting(true);
-      console.log("Submitting email:", email);
-      const data = await subscribeToNewsletter(email);
-      setSubscriptionStatus({
-        message: data.message || "Thank you for subscribing!",
-        type: "success",
-      });
-      setEmail(""); // Clear the input
+      // Add actual subscription logic here
+      // For now, just simulate a successful subscription
+      setTimeout(() => {
+        setSubscriptionStatus({
+          message: "Thank you for subscribing!",
+          type: "success",
+        });
+        setEmail("");
+        setIsSubmitting(false);
+      }, 1000);
     } catch (error) {
-      console.error("Subscription error in component:", error);
       setSubscriptionStatus({
-        message: error.message || "An error occurred during subscription",
+        message: "Failed to subscribe. Please try again.",
         type: "error",
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -157,7 +233,9 @@ const HomePage = () => {
       </section>
 
       <section className="category-section">
-        <h2>Browse by Main Category</h2>
+        <h2>Browse by Category</h2>
+
+        {/* Main Categories */}
         <div className="category-tabs main-categories">
           {mainCategories.map((category) => (
             <button
@@ -172,23 +250,29 @@ const HomePage = () => {
           ))}
         </div>
 
-        {activeMainCategory !== "All" && (
-          <>
-            <h3>Subcategories</h3>
-            <div className="category-tabs sub-categories">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  className={`category-tab ${
-                    activeCategory === category ? "active" : ""
-                  }`}
-                  onClick={() => handleCategoryChange(category)}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </>
+        {/* Subcategories - only show if a main category is selected */}
+        {activeMainCategory !== "All" && subCategories[activeMainCategory] && (
+          <div className="category-tabs sub-categories">
+            <button
+              className={`category-tab ${
+                activeSubCategory === "All" ? "active" : ""
+              }`}
+              onClick={() => handleSubCategoryChange("All")}
+            >
+              All {activeMainCategory}
+            </button>
+            {subCategories[activeMainCategory].map((subCategory) => (
+              <button
+                key={subCategory}
+                className={`category-tab ${
+                  activeSubCategory === subCategory ? "active" : ""
+                }`}
+                onClick={() => handleSubCategoryChange(subCategory)}
+              >
+                {subCategory}
+              </button>
+            ))}
+          </div>
         )}
       </section>
 
@@ -200,10 +284,10 @@ const HomePage = () => {
             <h2>
               {searchTerm
                 ? `Search Results for "${searchTerm}"`
-                : activeCategory !== "All"
-                ? `Courses in ${activeCategory}`
                 : activeMainCategory !== "All"
-                ? `All ${activeMainCategory} Courses`
+                ? activeSubCategory !== "All"
+                  ? `Courses in ${activeMainCategory} > ${activeSubCategory}`
+                  : `Courses in ${activeMainCategory}`
                 : "Featured Courses"}
               <span className="course-count">
                 ({filteredResources.length} courses)
@@ -221,6 +305,19 @@ const HomePage = () => {
                 </div>
               )}
             </div>
+
+            {/* Add this at the bottom of your component, after the resource cards */}
+            {hasMore && (
+              <div className="text-center mt-6 mb-10">
+                <button
+                  onClick={loadMoreData}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? "Loading more..." : "Load More Courses"}
+                </button>
+              </div>
+            )}
           </>
         )}
       </section>

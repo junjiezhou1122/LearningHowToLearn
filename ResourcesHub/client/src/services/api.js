@@ -1,4 +1,13 @@
-const API_URL = import.meta.env.VITE_API_URL || "/api";
+// Get the server port from window or localStorage, fallback to environment variable or default
+const getServerPort = () => {
+  return window.SERVER_PORT || localStorage.getItem("serverPort") || 5000; // Default to 5000 based on server .env
+};
+
+// Dynamically construct API URL based on server port
+const getApiUrl = () => {
+  const port = getServerPort();
+  return import.meta.env.VITE_API_URL || `http://localhost:${port}/api`;
+};
 
 /**
  * Newsletter subscription service
@@ -9,6 +18,7 @@ export const subscribeToNewsletter = async (email) => {
   try {
     // Try the main API endpoint with better error handling
     try {
+      const API_URL = getApiUrl();
       console.log(
         `Attempting to subscribe with endpoint: ${API_URL}/subscribers`
       );
@@ -124,6 +134,7 @@ export const subscribeToNewsletter = async (email) => {
  * @returns {Promise<Array>} - Array of resources
  */
 export const getAllResources = async () => {
+  const API_URL = getApiUrl();
   const response = await fetch(`${API_URL}/resources`);
 
   const data = await response.json();
@@ -141,6 +152,7 @@ export const getAllResources = async () => {
  * @returns {Promise<Array>} - Array of resources
  */
 export const getResourcesByCategory = async (category) => {
+  const API_URL = getApiUrl();
   const response = await fetch(`${API_URL}/resources/category/${category}`);
 
   const data = await response.json();
@@ -159,6 +171,7 @@ export const getResourcesByCategory = async (category) => {
  * @returns {Promise<Object>} - Response from the server
  */
 export const saveResource = async (resourceId, userId) => {
+  const API_URL = getApiUrl();
   const response = await fetch(`${API_URL}/users/${userId}/bookmarks`, {
     method: "POST",
     headers: {

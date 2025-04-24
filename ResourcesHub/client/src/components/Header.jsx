@@ -1,14 +1,27 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./Header.css";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Function to check if the link is active
   const isActive = (path) => {
     return location.pathname === path ? "active" : "";
+  };
+
+  // Handle search form submission
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      // Close mobile menu if open
+      setIsMenuOpen(false);
+      // Navigate to search page with query
+      navigate(`/search?q=${encodeURIComponent(searchInput.trim())}`);
+    }
   };
 
   return (
@@ -53,10 +66,15 @@ const Header = () => {
           </ul>
         </nav>
 
-        <div className="search-box">
-          <input type="text" placeholder="Search resources..." />
+        <form onSubmit={handleSearchSubmit} className="search-box">
+          <input
+            type="text"
+            placeholder="Search resources..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
           <button type="submit">Search</button>
-        </div>
+        </form>
 
         <div
           className="mobile-toggle"

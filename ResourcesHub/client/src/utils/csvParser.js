@@ -1,64 +1,68 @@
 /**
- * Fetches and parses a CSV file
- * @param {string} url - The URL of the CSV file
- * @returns {Promise<Array>} - Array of objects representing CSV rows
+ * Utility for parsing CSV files
  */
-export const parseCSV = async (url) => {
+
+/**
+ * Parse a CSV file into an array of objects
+ * @param {string} filePath - Path to the CSV file
+ * @returns {Promise<Array>} - Array of objects representing the CSV data
+ */
+export const parseCSV = async (filePath) => {
   try {
-    const response = await fetch(url);
+    console.log(`Loading CSV data from ${filePath}`);
+
+    // Get the absolute path
+    const csvPath = filePath.startsWith("/") ? filePath : `/${filePath}`;
+
+    const response = await fetch(csvPath);
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch CSV: ${response.status}`);
+      throw new Error(
+        `Failed to load CSV: ${response.status} ${response.statusText}`
+      );
     }
 
     const text = await response.text();
-    return parseCSVText(text);
-  } catch (error) {
-    console.error("Error fetching or parsing CSV:", error);
-    throw error;
-  }
-};
 
-/**
- * Parses CSV text into an array of objects
- * @param {string} text - The CSV text content
- * @returns {Array} - Array of objects with header keys
- */
-export const parseCSVText = (text) => {
-  // Split the text into lines
-  const lines = text.split("\n").filter((line) => line.trim());
+    // Parse CSV text
+    const lines = text.split("\n");
+    const headers = parseCSVLine(lines[0]);
 
-  // Get the headers from the first line
-  const headers = lines[0].split(",").map((header) => header.trim());
+    const data = [];
 
-  // Parse the data rows
-  const data = [];
-  for (let i = 1; i < lines.length; i++) {
-    // Handle commas inside quotes properly
-    const values = parseCSVLine(lines[i]);
+    // Skip header row (i=0)
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue; // Skip empty lines
 
-    if (values.length === headers.length) {
-      const row = {};
-      headers.forEach((header, index) => {
-        // Clean potential quotes from values
-        const value = values[index].replace(/^"|"$/g, "");
-        row[header] = value;
-      });
-      data.push(row);
+      const values = parseCSVLine(lines[i]);
+      if (values.length < headers.length) continue; // Skip incomplete rows
+
+      const entry = {};
+      for (let j = 0; j < headers.length; j++) {
+        entry[headers[j].trim()] = values[j].trim();
+      }
+
+      // Transform into course format
+      data.push(transformToCourseFormat(entry, i));
     }
-  }
 
-  return data;
+    console.log(`Successfully loaded ${data.length} courses from CSV`);
+    return data;
+  } catch (error) {
+    console.error("Error parsing CSV file:", error);
+    return [];
+  }
 };
 
 /**
- * Parses a CSV line handling commas within quoted fields
- * @param {string} line - A line from the CSV file
- * @returns {Array} - Array of field values
+ * Parse a CSV line accounting for quoted values which may contain commas
+ * @param {string} line - CSV line
+ * @returns {string[]} - Array of values
  */
-const parseCSVLine = (line) => {
-  const values = [];
+function parseCSVLine(line) {
+  const result = [];
+  let current = "";
   let inQuotes = false;
-  let currentValue = "";
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
@@ -66,15 +70,73 @@ const parseCSVLine = (line) => {
     if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === "," && !inQuotes) {
-      values.push(currentValue);
-      currentValue = "";
+      result.push(current);
+      current = "";
     } else {
-      currentValue += char;
+      current += char;
     }
   }
 
-  // Add the last value
-  values.push(currentValue);
+  // Add the last field
+  result.push(current);
 
-  return values;
-};
+  return result;
+}
+
+/**
+ * Transform raw CSV data into course object format
+ * @param {Object} entry - Raw CSV data
+ * @param {number} index - Row index
+ * @returns {Object} - Formatted course object
+ */
+function transformToCourseFormat(entry, index) {
+  // Handle different field name variations
+  return {
+    id: entry.id || index.toString(),
+    title: entry.title || entry.Title || "Unknown Title",
+    url: entry.url || entry.URL || "#",
+    description:
+      entry.description || entry["Short Intro"] || "No description available",
+    imageUrl: entry.imageUrl || entry.Image || "",
+    category: entry.category || entry.Category || "Uncategorized",
+    mainCategory: (entry.category || entry.Category || "Uncategorized")
+      .split(",")[0]
+      ?.trim(),
+    subCategory: entry.subCategory || entry["Sub-Category"] || "",
+    tags: parseTags(entry.tags || entry.Tags),
+    provider: entry.provider || entry.Site || "Coursera",
+    difficulty: entry.difficulty || entry.Level || "",
+    resourceType: entry.resourceType || entry["Course Type"] || "Course",
+    language: entry.language || entry.Language || "English",
+    instructors: parseInstructors(entry.instructors || entry.Instructors),
+    rating: entry.rating || entry.Rating || null,
+    reviews: entry.reviews || entry.Reviews || null,
+    duration: entry.duration || entry.Duration || "",
+    subtitles: entry.subtitles || entry.Subtitles || "",
+  };
+}
+
+/**
+ * Parse tags string into array
+ * @param {string|Array} tags - Tags string or array
+ * @returns {Array} - Array of tags
+ */
+function parseTags(tags) {
+  if (!tags) return [];
+  if (Array.isArray(tags)) return tags;
+  if (typeof tags === "string") return tags.split(",").map((tag) => tag.trim());
+  return [];
+}
+
+/**
+ * Parse instructors string into array
+ * @param {string|Array} instructors - Instructors string or array
+ * @returns {Array} - Array of instructors
+ */
+function parseInstructors(instructors) {
+  if (!instructors) return [];
+  if (Array.isArray(instructors)) return instructors;
+  if (typeof instructors === "string")
+    return instructors.split(",").map((i) => i.trim());
+  return [];
+}
