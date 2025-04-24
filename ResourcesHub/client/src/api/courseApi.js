@@ -104,10 +104,12 @@ async function extractCategoriesFromCSV() {
   }
 }
 
-// Function to get paginated courses
+// Function to get paginated courses with category and subcategory filtering
 export const getPaginatedCourses = async (
   page = 1,
-  limit = DEFAULT_PAGE_SIZE
+  limit = DEFAULT_PAGE_SIZE,
+  category = null,
+  subcategory = null
 ) => {
   try {
     // First try to get from server if available
@@ -115,13 +117,19 @@ export const getPaginatedCourses = async (
 
     if (serverIsAvailable) {
       const serverUrl = getServerUrl();
-      console.log(
-        `Fetching paginated courses from server: ${serverUrl}/api/resources/courses`
-      );
+      let url = `${serverUrl}/api/resources/courses?page=${page}&limit=${limit}`;
+      
+      // Add category and subcategory filters if provided
+      if (category && category !== "All") {
+        url += `&category=${encodeURIComponent(category)}`;
+        if (subcategory && subcategory !== "All") {
+          url += `&subcategory=${encodeURIComponent(subcategory)}`;
+        }
+      }
+      
+      console.log(`Fetching paginated courses from server: ${url}`);
 
-      const response = await fetch(
-        `${serverUrl}/api/resources/courses?page=${page}&limit=${limit}`
-      );
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -132,13 +140,13 @@ export const getPaginatedCourses = async (
     } else {
       // Server not available, use CSV fallback
       console.log("Server unavailable, loading paginated courses from CSV");
-      return getPaginatedCoursesFromCSV(page, limit);
+      return getPaginatedCoursesFromCSV(page, limit, category, subcategory);
     }
   } catch (error) {
     console.error("Error fetching paginated courses:", error);
     // Always fallback to CSV if there's an error
     console.log("Using CSV fallback for paginated courses");
-    return getPaginatedCoursesFromCSV(page, limit);
+    return getPaginatedCoursesFromCSV(page, limit, category, subcategory);
   }
 };
 
@@ -224,18 +232,37 @@ async function getCoursesFromCSV() {
   }
 }
 
-// Get paginated courses from CSV
-async function getPaginatedCoursesFromCSV(page = 1, limit = 20) {
+// Get paginated courses from CSV with filtering
+async function getPaginatedCoursesFromCSV(page = 1, limit = 20, category = null, subcategory = null) {
   try {
     const allCourses = await getCoursesFromCSV();
+    
+    // Apply filters if provided
+    let filteredCourses = [...allCourses];
+    
+    // Apply category filter if provided
+    if (category && category !== "All") {
+      filteredCourses = filteredCourses.filter(
+        course => course.category === category
+      );
+      
+      // Apply subcategory filter if provided (and category is also provided)
+      if (subcategory && subcategory !== "All") {
+        filteredCourses = filteredCourses.filter(
+          course => course.subCategory === subcategory
+        );
+      }
+    }
+    
+    // Apply pagination
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
-    const paginatedData = allCourses.slice(startIndex, endIndex);
+    const paginatedData = filteredCourses.slice(startIndex, endIndex);
 
     return {
-      totalCount: allCourses.length,
+      totalCount: filteredCourses.length,
       currentPage: page,
-      totalPages: Math.ceil(allCourses.length / limit),
+      totalPages: Math.ceil(filteredCourses.length / limit),
       data: paginatedData,
     };
   } catch (error) {

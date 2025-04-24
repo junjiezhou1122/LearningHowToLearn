@@ -22,6 +22,8 @@ const HomePage = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showSubCategories, setShowSubCategories] = useState(false);
+  const subCategoriesRef = useRef(null);
   const ITEMS_PER_PAGE = 100; // Increased to 100
 
   const location = useLocation();
@@ -35,6 +37,8 @@ const HomePage = () => {
 
     if (mainParam) {
       setActiveMainCategory(mainParam);
+      setShowSubCategories(mainParam !== "All");
+
       // Set subcategory only if main category exists and sub parameter is provided
       if (subParam) {
         setActiveSubCategory(subParam);
@@ -67,28 +71,40 @@ const HomePage = () => {
     fetchAllCategories();
   }, []);
 
-  // Load courses with pagination
+  // Smooth scroll to subcategories when they appear
+  useEffect(() => {
+    if (showSubCategories && subCategoriesRef.current) {
+      setTimeout(() => {
+        subCategoriesRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }, 100);
+    }
+  }, [showSubCategories]);
+
+  // Load courses with pagination and filtering
   useEffect(() => {
     const loadCourses = async () => {
       try {
         setIsLoading(true);
-        const response = await getPaginatedCourses(page, ITEMS_PER_PAGE);
+        // Use the updated getPaginatedCourses function with category and subcategory filters
+        const response = await getPaginatedCourses(
+          page,
+          ITEMS_PER_PAGE,
+          activeMainCategory === "All" ? null : activeMainCategory,
+          activeSubCategory === "All" ? null : activeSubCategory
+        );
 
         if (response.data) {
           // Paginated API response (new format)
           if (page === 1) {
             setResources(response.data);
+            setFilteredResources(response.data);
           } else {
             setResources((prev) => [...prev, ...response.data]);
+            setFilteredResources((prev) => [...prev, ...response.data]);
           }
-
-          setFilteredResources((prev) => {
-            if (page === 1) {
-              return filterCourses(response.data);
-            } else {
-              return filterCourses([...prev, ...response.data]);
-            }
-          });
 
           setHasMore(page < response.totalPages);
         } else {
@@ -107,7 +123,7 @@ const HomePage = () => {
     };
 
     loadCourses();
-  }, [page]);
+  }, [page, activeMainCategory, activeSubCategory]);
 
   // Handle loading more courses
   const loadMoreData = () => {
@@ -157,8 +173,12 @@ const HomePage = () => {
 
   // Handle main category change
   const handleMainCategoryChange = (category) => {
+    // If clicking the already active category, do nothing
+    if (category === activeMainCategory) return;
+
     setActiveMainCategory(category);
     setActiveSubCategory("All"); // Reset subcategory when main category changes
+    setShowSubCategories(category !== "All");
 
     // Update URL params
     if (category === "All") {
@@ -244,36 +264,52 @@ const HomePage = () => {
                 activeMainCategory === category ? "active" : ""
               }`}
               onClick={() => handleMainCategoryChange(category)}
+              aria-pressed={activeMainCategory === category}
             >
               {category}
             </button>
           ))}
         </div>
 
-        {/* Subcategories - only show if a main category is selected */}
-        {activeMainCategory !== "All" && subCategories[activeMainCategory] && (
-          <div className="category-tabs sub-categories">
-            <button
-              className={`category-tab ${
-                activeSubCategory === "All" ? "active" : ""
-              }`}
-              onClick={() => handleSubCategoryChange("All")}
-            >
-              All {activeMainCategory}
-            </button>
-            {subCategories[activeMainCategory].map((subCategory) => (
-              <button
-                key={subCategory}
-                className={`category-tab ${
-                  activeSubCategory === subCategory ? "active" : ""
-                }`}
-                onClick={() => handleSubCategoryChange(subCategory)}
-              >
-                {subCategory}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Subcategories in new container with header */}
+        <div
+          className={`subcategories-container ${
+            showSubCategories ? "visible" : ""
+          }`}
+          ref={subCategoriesRef}
+        >
+          {activeMainCategory !== "All" &&
+            subCategories[activeMainCategory] && (
+              <>
+                <div className="subcategory-header">
+                  <h3>Subcategories in {activeMainCategory}</h3>
+                </div>
+                <div className="sub-categories">
+                  <button
+                    className={`category-tab ${
+                      activeSubCategory === "All" ? "active" : ""
+                    }`}
+                    onClick={() => handleSubCategoryChange("All")}
+                    aria-pressed={activeSubCategory === "All"}
+                  >
+                    All {activeMainCategory}
+                  </button>
+                  {subCategories[activeMainCategory].map((subCategory) => (
+                    <button
+                      key={subCategory}
+                      className={`category-tab ${
+                        activeSubCategory === subCategory ? "active" : ""
+                      }`}
+                      onClick={() => handleSubCategoryChange(subCategory)}
+                      aria-pressed={activeSubCategory === subCategory}
+                    >
+                      {subCategory}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+        </div>
       </section>
 
       <section className="resources-section">

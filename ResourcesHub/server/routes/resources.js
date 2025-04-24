@@ -16,7 +16,7 @@ let categoriesCache = null;
 const CACHE_DURATION = 3600000; // 1 hour in milliseconds
 const DEFAULT_PAGE_SIZE = 100; // Increased default page size
 
-// Get all available categories (main categories only)
+// Get all available categories with subcategories
 router.get("/categories", async (req, res) => {
   try {
     // Use cached categories if available
@@ -24,10 +24,8 @@ router.get("/categories", async (req, res) => {
       return res.json(categoriesCache);
     }
 
-    const categories = { mainCategories: [] };
-    const mainCategoriesSet = new Set();
-
-    // Read the CSV file to extract all categories
+    // Create a map to organize subcategories under main categories
+    const categoryMap = new Map();
     const dataPath = path.join(
       __dirname,
       "../..",
@@ -40,16 +38,48 @@ router.get("/categories", async (req, res) => {
     fs.createReadStream(dataPath)
       .pipe(csv())
       .on("data", (data) => {
-        if (data.Category) {
-          mainCategoriesSet.add(data.Category);
+        if (data.Category && data["Sub-Category"]) {
+          // Filter out non-English categories and categories that are too long
+          const isEnglishCategory = /^[A-Za-z\s&-]+$/.test(data.Category);
+          const isCategoryLengthOK =
+            data.Category.length <= "Physical Science and Engineering".length;
+
+          if (isEnglishCategory && isCategoryLengthOK) {
+            // If the main category doesn't exist in the map yet, add it with an empty set
+            if (!categoryMap.has(data.Category)) {
+              categoryMap.set(data.Category, new Set());
+            }
+
+            // Only add English subcategories that aren't too long
+            const isEnglishSubCategory = /^[A-Za-z\s&-]+$/.test(
+              data["Sub-Category"]
+            );
+            const isSubCategoryLengthOK =
+              data["Sub-Category"].length <=
+              "Physical Science and Engineering".length;
+
+            if (isEnglishSubCategory && isSubCategoryLengthOK) {
+              categoryMap.get(data.Category).add(data["Sub-Category"]);
+            }
+          }
         }
       })
       .on("end", () => {
-        categories.mainCategories = Array.from(mainCategoriesSet).sort();
+        // Convert the map to the desired format
+        const mainCategories = Array.from(categoryMap.keys()).sort();
+        const subCategories = {};
+
+        for (const [mainCategory, subCategorySet] of categoryMap.entries()) {
+          subCategories[mainCategory] = Array.from(subCategorySet).sort();
+        }
+
+        const categories = {
+          mainCategories,
+          subCategories,
+        };
 
         // Update cache
         categoriesCache = categories;
-
         return res.json(categories);
       });
   } catch (error) {
@@ -58,11 +88,13 @@ router.get("/categories", async (req, res) => {
   }
 });
 
-// Get all courses with pagination support
+// Get all courses with category and subcategory filtering and pagination support
 router.get("/courses", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || DEFAULT_PAGE_SIZE; // 0 means no limit
+    const category = req.query.category || null;
+    const subcategory = req.query.subcategory || null;
 
     // Use cached data if available and still valid
     if (
@@ -70,22 +102,38 @@ router.get("/courses", async (req, res) => {
       lastCacheTime &&
       Date.now() - lastCacheTime < CACHE_DURATION
     ) {
+      let filteredData = [...coursesCache];
+      
+      // Apply category filter if provided
+      if (category && category !== "All") {
+        filteredData = filteredData.filter(
+          course => course.category === category
+        );
+        
+        // Apply subcategory filter if provided (and category is also provided)
+        if (subcategory && subcategory !== "All") {
+          filteredData = filteredData.filter(
+            course => course.subCategory === subcategory
+          );
+        }
+      }
+
       // Return paginated data if limit is specified
       if (limit > 0) {
         const startIndex = (page - 1) * limit;
         const endIndex = page * limit;
-        const paginatedData = coursesCache.slice(startIndex, endIndex);
+        const paginatedData = filteredData.slice(startIndex, endIndex);
 
         return res.json({
-          totalCount: coursesCache.length,
+          totalCount: filteredData.length,
           currentPage: page,
-          totalPages: Math.ceil(coursesCache.length / limit),
+          totalPages: Math.ceil(filteredData.length / limit),
           data: paginatedData,
         });
       }
 
-      // Return all data if no pagination requested
-      return res.json(coursesCache);
+      // Return all filtered data if no pagination requested
+      return res.json(filteredData);
     }
 
     // If no cache or cache expired, read and process the data
@@ -133,22 +181,38 @@ router.get("/courses", async (req, res) => {
         coursesCache = results;
         lastCacheTime = Date.now();
 
+        let filteredData = [...results];
+        
+        // Apply category filter if provided
+        if (category && category !== "All") {
+          filteredData = filteredData.filter(
+            course => course.category === category
+          );
+          
+          // Apply subcategory filter if provided (and category is also provided)
+          if (subcategory && subcategory !== "All") {
+            filteredData = filteredData.filter(
+              course => course.subCategory === subcategory
+            );
+          }
+        }
+
         // Return paginated data if limit is specified
         if (limit > 0) {
           const startIndex = (page - 1) * limit;
           const endIndex = page * limit;
-          const paginatedData = results.slice(startIndex, endIndex);
+          const paginatedData = filteredData.slice(startIndex, endIndex);
 
           return res.json({
-            totalCount: results.length,
+            totalCount: filteredData.length,
             currentPage: page,
-            totalPages: Math.ceil(results.length / limit),
+            totalPages: Math.ceil(filteredData.length / limit),
             data: paginatedData,
           });
         }
 
-        // Return all data if no pagination requested
-        return res.json(results);
+        // Return all filtered data if no pagination requested
+        return res.json(filteredData);
       });
   } catch (error) {
     console.error("Error fetching courses:", error);

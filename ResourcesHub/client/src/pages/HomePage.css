@@ -84,6 +84,7 @@
 .category-section {
   margin: 4rem 0;
   text-align: center;
+  position: relative;
 }
 
 .category-section h2,
@@ -93,8 +94,10 @@
 }
 
 .category-section h3 {
-  margin-top: 2rem;
+  margin-top: 1rem;
   font-size: 1.3rem;
+  color: #4a6cf7;
+  font-weight: 500;
 }
 
 .category-tabs {
@@ -113,13 +116,43 @@
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Subcategories container */
+.subcategories-container {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s ease, padding 0.3s ease, margin 0.3s ease;
+  opacity: 0;
+}
+
+.subcategories-container.visible {
+  max-height: 500px;
+  opacity: 1;
+  padding: 1.5rem;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.subcategory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .sub-categories {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
-  animation: fadeIn 0.3s ease-in-out;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
 }
 
 @keyframes fadeIn {
@@ -134,12 +167,14 @@
 }
 
 .sub-categories .category-tab {
-  background-color: #f8f9fa;
+  background-color: white;
   border: 1px solid #e9ecef;
   padding: 0.5rem 1.2rem;
   border-radius: 20px;
   font-size: 0.9rem;
   color: #495057;
+  margin: 0.25rem;
+  transition: all 0.2s ease;
 }
 
 .category-tab:hover,
@@ -147,6 +182,25 @@
   background-color: #4a6cf7;
   color: white;
   border-color: #4a6cf7;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(74, 108, 247, 0.2);
+}
+
+.category-tab.active {
+  position: relative;
+}
+
+.category-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background-color: #4a6cf7;
+  border-radius: 50%;
+  display: block;
 }
 
 /* Resources Section */
@@ -262,7 +316,28 @@
     justify-content: flex-start;
     overflow-x: auto;
     padding-bottom: 1rem;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+  }
+
+  .category-tabs::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .category-tabs::-webkit-scrollbar-thumb {
+    background-color: rgba(74, 108, 247, 0.3);
+    border-radius: 4px;
+  }
+
+  .main-categories {
     flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+
+  .sub-categories {
+    justify-content: flex-start;
+    max-height: 200px;
   }
 }
 
