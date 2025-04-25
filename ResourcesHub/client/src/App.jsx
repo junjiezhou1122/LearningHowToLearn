@@ -5,10 +5,13 @@ import HomePage from "./pages/HomePage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import BookmarksPage from "./pages/BookmarksPage";
-import ProfilePage from "./pages/ProfilePage";
 import SearchPage from "./pages/SearchPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import "./App.css";
+import { useAuth } from "./utils/authContext"; // Add this import
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import ProfilePage from "./pages/ProfilePage";
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -57,6 +60,7 @@ class ErrorBoundary extends React.Component {
 function App({ serverPort = 3000 }) {
   const [isServerConnected, setIsServerConnected] = useState(null);
   const [appError, setAppError] = useState(null);
+  const { loading: authLoading } = useAuth(); // Add this line
 
   // Check if server is running when app starts
   useEffect(() => {
@@ -108,7 +112,7 @@ function App({ serverPort = 3000 }) {
     return () => window.removeEventListener("error", handleError);
   }, [serverPort]);
 
-  // Show loading or error state while checking server
+  // Add checks for server connection and auth loading
   if (isServerConnected === false) {
     return (
       <div
@@ -169,6 +173,19 @@ function App({ serverPort = 3000 }) {
     );
   }
 
+  // Show loading state while auth is being checked
+  if (authLoading) {
+    return (
+      <div className="loading p-5 text-center" style={{ margin: "2rem" }}>
+        <h3>Loading application...</h3>
+        <p>Please wait while we initialize the application</p>
+        <div className="spinner-border text-primary mt-3" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
   // Add a fallback UI in case something is wrong with MainLayout or its children
   try {
     return (
@@ -182,9 +199,12 @@ function App({ serverPort = 3000 }) {
                   path="/recommendations"
                   element={<RecommendationsPage />}
                 />
+                {/* Add routes for login and register */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/bookmarks" element={<BookmarksPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>

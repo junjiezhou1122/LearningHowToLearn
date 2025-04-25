@@ -28,3 +28,63 @@ export const isServerAvailable = async () => {
     return false;
   }
 };
+
+/**
+ * Register a new user
+ * @param {Object} userData - User registration data
+ * @returns {Promise<Object>} Registration response
+ */
+export const registerUser = async (userData) => {
+  const serverUrl = getServerUrl();
+  const response = await fetch(`${serverUrl}/api/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(userData),
+  });
+
+  return await response.json();
+};
+
+/**
+ * Login a user
+ * @param {Object} credentials - User login credentials
+ * @returns {Promise<Object>} Login response
+ */
+export const loginUser = async (credentials) => {
+  const serverUrl = getServerUrl();
+  const response = await fetch(`${serverUrl}/api/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(credentials),
+  });
+
+  return await response.json();
+};
+
+/**
+ * Verify user token
+ * @returns {Promise<Object>} User data if token is valid
+ */
+export const verifyUser = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) return null;
+
+  const serverUrl = getServerUrl();
+  const response = await fetch(`${serverUrl}/api/auth/verify`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    // Token is invalid, clear it
+    localStorage.removeItem("authToken");
+    return null;
+  }
+
+  return await response.json();
+};

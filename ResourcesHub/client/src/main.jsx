@@ -1,8 +1,8 @@
-import React from "react"; // Ensure React is imported
-import { StrictMode } from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.jsx";
+import { AuthProvider } from "./utils/authContext";
 
 // Check if server is running before mounting the app
 const checkServerConnection = async () => {
@@ -17,6 +17,10 @@ const checkServerConnection = async () => {
 
       const response = await fetch(`http://localhost:${port}/api/test`, {
         signal: controller.signal,
+        mode: "cors", // Explicitly set CORS mode
+        headers: {
+          Accept: "application/json",
+        },
       });
       clearTimeout(timeoutId);
 
@@ -76,35 +80,33 @@ if (!rootElement) {
           </p>
         </div>
       `;
-      return;
-    }
-
-    try {
-      const root = createRoot(rootElement);
-
-      root.render(
-        <StrictMode>
-          <App serverPort={window.SERVER_PORT} />
-        </StrictMode>
-      );
-
-      console.log("React application successfully mounted to DOM");
-    } catch (error) {
-      console.error("Failed to render React application:", error);
-
-      // Render a fallback UI directly in the DOM if React fails to mount
-      rootElement.innerHTML = `
-        <div style="padding: 20px; margin: 20px; border: 1px solid red;">
-          <h2>React Rendering Error</h2>
-          <p>The application failed to initialize properly.</p>
-          <div style="padding: 10px; background-color: #ffeeee; border-radius: 4px;">
-            ${error.message}
+    } else {
+      // Render the application when server is available
+      try {
+        const root = createRoot(rootElement);
+        root.render(
+          <React.StrictMode>
+            <AuthProvider>
+              <App serverPort={window.SERVER_PORT || 5000} />
+            </AuthProvider>
+          </React.StrictMode>
+        );
+      } catch (error) {
+        // This is a catch-all for any rendering errors
+        console.error("Error rendering the application:", error);
+        rootElement.innerHTML = `
+          <div style="padding: 20px; margin: 20px; border: 1px solid red;">
+            <h2>Application Error</h2>
+            <p>The application failed to initialize properly.</p>
+            <div style="padding: 10px; background-color: #ffeeee; border-radius: 4px;">
+              ${error.message}
+            </div>
+            <p style="margin-top: 20px;">
+              <button onclick="window.location.reload()">Reload Application</button>
+            </p>
           </div>
-          <p style="margin-top: 20px;">
-            <button onclick="window.location.reload()">Reload Application</button>
-          </p>
-        </div>
-      `;
+        `;
+      }
     }
   });
 }

@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import subscriberRoutes from "./routes/subscriber.js";
 import uploadRoutes from "./routes/upload.js";
 import resourcesRoutes from "./routes/resources.js";
+import authRoutes from "./routes/auth.js";
 
 dotenv.config();
 
@@ -18,6 +19,12 @@ app.use(
       "http://localhost:5173",
       "http://127.0.0.1:5173",
       "http://localhost:3000",
+      "http://localhost:5174",
+      "http://localhost:5175",
+      "http://localhost:50001",
+      "http://localhost:5001",
+      // Allow all localhost ports in development
+      /^http:\/\/localhost:\d+$/,
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
@@ -28,6 +35,7 @@ app.use(
     ],
     credentials: true,
     optionsSuccessStatus: 204,
+    preflightContinue: false,
   })
 );
 
@@ -51,6 +59,7 @@ app.use((req, res, next) => {
 app.use("/api/subscribers", subscriberRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/resources", resourcesRoutes);
+app.use("/api/auth", authRoutes);
 
 // Test route to verify API functionality
 app.get("/api/test", (req, res) => {
