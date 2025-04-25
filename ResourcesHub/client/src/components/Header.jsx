@@ -54,11 +54,7 @@ const Header = () => {
                   Recommendations
                 </Link>
               </li>
-              <li>
-                <Link to="/categories" className={isActive("/categories")}>
-                  Categories
-                </Link>
-              </li>
+
               {user && (
                 <>
                   <li>

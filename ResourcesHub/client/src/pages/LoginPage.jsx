@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from "react";
 import LoginForm from "../components/LoginForm";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useAuth } from "../utils/authContext";
 import "./AuthPages.css";
 
 const LoginPage = () => {
   const [loaded, setLoaded] = useState(false);
+  const { user } = useAuth();
+
+  // Redirect if user is already logged in
+  if (user) {
+    return <Navigate to="/" />;
+  }
 
   useEffect(() => {
     setLoaded(true);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../utils/authContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const LoginForm = () => {
   const [credentials, setCredentials] = useState({
@@ -11,6 +11,7 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const { login, error } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,7 +26,10 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      await login(credentials);
+      const success = await login(credentials);
+      if (success) {
+        navigate("/"); // Redirect to home page after successful login
+      }
     } finally {
       setIsLoading(false);
     }
